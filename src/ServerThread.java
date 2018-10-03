@@ -37,6 +37,10 @@ public void run(){
 		   messagecount++;
 		   }
 		   connectionSocket.close();
+		   MainServer.allConnections.remove(connectionSocket);
+		   System.out.println("Disc");
+		   capitalizedSentence = username + " ist gegangen!\n";
+		   MainServer.addMessage(capitalizedSentence);
     }catch (Exception e){
         System.out.println(e.toString());
        

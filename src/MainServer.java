@@ -11,7 +11,7 @@ public class MainServer {
 		// TODO Auto-generated method stub
 		String clientSentence;
 		  String capitalizedSentence;
-		  welcomeSocket = new ServerSocket(25565);
+		  welcomeSocket = new ServerSocket(21245);
 
 		  while (true) {
 			  Thread st = new ServerThread();
