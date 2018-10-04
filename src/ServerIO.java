@@ -43,13 +43,29 @@ private static void saveToLog() {
 	}
 }
 
+private static void saveRegisteredUsers() {
+	try {
+	FileWriter fw = new FileWriter("exchangerusers.snt");
+    BufferedWriter bw = new BufferedWriter(fw);
+    for(RegisteredUser m : MainServer.allRegisteredUsers) {
+    bw.write(m.toString());
+    bw.newLine();
+    
+    }
+    bw.close();
+	}catch (Exception e) {
+		e.printStackTrace();
+	}
+}
+
 public static boolean executeCommand(String command,String role) {
 	switch(command) {
 	case "stop" : MainServer.killServer(); return true;
 	case "help" : System.out.println("not available"); return true;
 	case "connections" : System.out.println(MainServer.allConnections.size()); return true;
 	case "allmessages" : allmessages(); return true;
-	case "save" : saveToLog(); return true;
+	case "save" : saveRegisteredUsers(); return true;
+	case "savelog" : saveToLog(); return true;
 	case "disconnect" : if(role=="local")System.out.println("client only"); return true;
 	default : if(role=="local")System.out.println("unknown command"); return false;
 	}

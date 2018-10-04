@@ -7,6 +7,7 @@ public class ServerThread extends Thread {
 	public Socket connectionSocket;
 	public String username;
 	public String role;
+	public RegisteredUser me;
 @Override
 public void run(){
 	String clientSentence;
@@ -21,6 +22,12 @@ public void run(){
 		  
 		   clientSentence = inFromClient.readLine();
 		   username=clientSentence;
+		   clientSentence = inFromClient.readLine();
+		 me= MainServer.loginUser(username, clientSentence); 
+			if(me==null){
+			   clientSentence="#disconnect#";
+			   outToClient.writeBytes(clientSentence + "\n");
+		   }
 		   while(!clientSentence.equalsIgnoreCase("#disconnect#")) {
 		   System.out.println("Received: " + clientSentence);
 		   if(role=="admin") {
