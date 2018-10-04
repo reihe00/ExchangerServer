@@ -3,6 +3,7 @@
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Scanner;
 
 public class MainServer {
@@ -92,6 +93,16 @@ public class MainServer {
 		}
 		RegisteredUser ret = new RegisteredUser(uname,"user",pass);
 		allRegisteredUsers.add(ret);
+		return ret;
+	}
+	
+	public static ArrayList<ChatMessage> allMessagesSince(Date when) {
+		ArrayList<ChatMessage> ret = new ArrayList<ChatMessage>();
+		for(ChatMessage cm : allMessages) {
+			if(cm.when.after(when)){
+				ret.add(cm);
+			}
+		}
 		return ret;
 	}
 

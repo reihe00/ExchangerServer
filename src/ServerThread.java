@@ -2,6 +2,7 @@ import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.InputStreamReader;
 import java.net.Socket;
+import java.util.Date;
 
 public class ServerThread extends Thread {
 	public Socket connectionSocket;
@@ -33,7 +34,7 @@ public void run(){
 		   while(!clientSentence.equalsIgnoreCase("#disconnect#")) {
 		   System.out.println("Received: " + clientSentence);
 		   if(me.role.equalsIgnoreCase("admin")) {
-			   System.out.println("admin says " + clientSentence);
+			   //System.out.println("admin says " + clientSentence);
 			   if(clientSentence.startsWith("#")&&clientSentence.endsWith("#")) {
 				   String command = clientSentence.replaceAll("#","");
 				   
@@ -53,6 +54,11 @@ public void run(){
 			   }
 		   //capitalizedSentence = clientSentence.toUpperCase() + "\n";
 		   if(messagecount==0) {
+			   for(ChatMessage cm : MainServer.allMessagesSince(me.lastseen)) {
+			   outToClient.writeBytes(cm.toSend());
+			   sleep(60);
+			   }
+			   sleep(20);
 		   capitalizedSentence = "Hallo " + username + "!";
 		   MainServer.addMessage(new ChatMessage(capitalizedSentence,""));
 		   }else {
@@ -62,11 +68,14 @@ public void run(){
 		   clientSentence = inFromClient.readLine();
 		   messagecount++;
 		   }
+		   if(me!=null)
+		   me.lastseen=new Date();
 		   connectionSocket.close();
 		   MainServer.allConnections.remove(connectionSocket);
 		   System.out.println("Disc");
 		   capitalizedSentence = username + " ist gegangen!";
 		   MainServer.addMessage(new ChatMessage(capitalizedSentence,""));
+		   
     }catch (Exception e){
         System.out.println(e.toString());
        
