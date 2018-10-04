@@ -6,6 +6,7 @@ import java.net.Socket;
 public class ServerThread extends Thread {
 	public Socket connectionSocket;
 	public String username;
+	public String role;
 @Override
 public void run(){
 	String clientSentence;
@@ -22,16 +23,28 @@ public void run(){
 		   username=clientSentence;
 		   while(!clientSentence.equalsIgnoreCase("#disconnect#")) {
 		   System.out.println("Received: " + clientSentence);
-		   if(clientSentence.equalsIgnoreCase("killserver")) {
-			   MainServer.killServer();
+		   if(role=="admin") {
+			   if(clientSentence.startsWith("#")&&clientSentence.endsWith("#")) {
+				   String command = clientSentence.replaceAll("#","");
+				   
+				   if(ServerIO.executeCommand(command, role)) {
+					   outToClient.writeBytes(command + " executed!");
+				   }else {
+					   outToClient.writeBytes("Unknown command: " + command);
+				   }
+			   }
+			   
+		   }
+		   if(clientSentence.equalsIgnoreCase("#connections#")) {
+			  outToClient.writeBytes(String.valueOf(MainServer.allConnections.size()));
 		   }
 		   //capitalizedSentence = clientSentence.toUpperCase() + "\n";
 		   if(messagecount==0) {
-		   capitalizedSentence = "Hallo " + clientSentence + "!\n";
-		   MainServer.addMessage(capitalizedSentence);
+		   capitalizedSentence = "Hallo " + clientSentence + "!";
+		   MainServer.addMessage(new ChatMessage(capitalizedSentence,""));
 		   }else {
-			   capitalizedSentence = username + ": " + clientSentence + "\n";
-			   MainServer.addMessage(capitalizedSentence);
+			   capitalizedSentence = clientSentence;
+			   MainServer.addMessage(new ChatMessage(capitalizedSentence,username));
 		   }
 		   clientSentence = inFromClient.readLine();
 		   messagecount++;
@@ -39,8 +52,8 @@ public void run(){
 		   connectionSocket.close();
 		   MainServer.allConnections.remove(connectionSocket);
 		   System.out.println("Disc");
-		   capitalizedSentence = username + " ist gegangen!\n";
-		   MainServer.addMessage(capitalizedSentence);
+		   capitalizedSentence = username + " ist gegangen!";
+		   MainServer.addMessage(new ChatMessage(capitalizedSentence,""));
     }catch (Exception e){
         System.out.println(e.toString());
        
