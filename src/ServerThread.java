@@ -27,17 +27,20 @@ public void run(){
 			if(me==null){
 			   clientSentence="#disconnect#";
 			   outToClient.writeBytes(clientSentence + "\n");
+		   }else {
+			   
 		   }
 		   while(!clientSentence.equalsIgnoreCase("#disconnect#")) {
 		   System.out.println("Received: " + clientSentence);
-		   if(role=="admin") {
+		   if(me.role.equalsIgnoreCase("admin")) {
+			   System.out.println("admin says " + clientSentence);
 			   if(clientSentence.startsWith("#")&&clientSentence.endsWith("#")) {
 				   String command = clientSentence.replaceAll("#","");
 				   
-				   if(ServerIO.executeCommand(command, role)) {
-					   outToClient.writeBytes(command + " executed!");
+				   if(ServerIO.executeCommand(command, me.role)) {
+					   outToClient.writeBytes(command + " executed!\n");
 				   }else {
-					   outToClient.writeBytes("Unknown command: " + command);
+					   outToClient.writeBytes("Unknown command: " + command+"\n");
 				   }
 			   }
 			   
@@ -45,9 +48,12 @@ public void run(){
 		   if(clientSentence.equalsIgnoreCase("#connections#")) {
 			  outToClient.writeBytes(String.valueOf(MainServer.allConnections.size()));
 		   }
+		   if(clientSentence.equalsIgnoreCase("#role#")) {
+				  outToClient.writeBytes(me.role + "\n");
+			   }
 		   //capitalizedSentence = clientSentence.toUpperCase() + "\n";
 		   if(messagecount==0) {
-		   capitalizedSentence = "Hallo " + clientSentence + "!";
+		   capitalizedSentence = "Hallo " + username + "!";
 		   MainServer.addMessage(new ChatMessage(capitalizedSentence,""));
 		   }else {
 			   capitalizedSentence = clientSentence;

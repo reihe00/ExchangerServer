@@ -20,11 +20,13 @@ public class MainServer {
 	    String s = bw.readLine();
 	    while(s.length()>3) {
 	    	try {
+	    	System.out.println(s);
 	    	String[] sa = s.split(":");
 	    	allRegisteredUsers.add(new RegisteredUser(sa[0],sa[1],sa[2]));
 	    	}catch(Exception e) {
 	    		e.printStackTrace();
 	    	}
+	    	s=bw.readLine();
 	    }
 	    bw.close();
 	    fw.close();
@@ -79,7 +81,7 @@ public class MainServer {
 		
 		for(RegisteredUser r : allRegisteredUsers) {
 			if(r.username.equalsIgnoreCase(uname)) {
-				if(r.passhash==pass) {
+				if(pass.contains(r.passhash)) {
 					System.out.println(uname + " logged in");
 					return r;
 				}else {
