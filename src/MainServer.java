@@ -66,7 +66,7 @@ public class MainServer {
 		if(s.isConnected()&&!s.isClosed()) {
 			try {
 				outToClient = new DataOutputStream(s.getOutputStream());
-				outToClient.writeBytes(message.toSend());
+				outToClient.write(message.toSend().getBytes("UTF8"));
 				if(message.toSend().equalsIgnoreCase("#disconnect#"))s.close();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
