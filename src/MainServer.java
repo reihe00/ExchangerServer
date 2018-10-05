@@ -79,7 +79,7 @@ public class MainServer {
 		   
 		}
 		for(Socket s : brokenones) {
-			allConnections.remove(s);
+			allConnections.remove(s);//jo
 		}
 	}
 	
