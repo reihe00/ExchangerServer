@@ -61,20 +61,25 @@ public class MainServer {
 	
 	public static void addMessage(ChatMessage message) {
 		allMessages.add(message);
+		ArrayList<Socket> brokenones = new ArrayList<Socket>();
 		for(Socket s : allConnections) {
 		DataOutputStream outToClient;
 		if(s.isConnected()&&!s.isClosed()) {
 			try {
 				outToClient = new DataOutputStream(s.getOutputStream());
-				outToClient.writeBytes(message.toSend());
+				outToClient.write(message.toSend().getBytes("UTF8"));
 				if(message.toSend().equalsIgnoreCase("#disconnect#"))s.close();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
+				brokenones.add(s);
 			}
 			
 		}
 		   
+		}
+		for(Socket s : brokenones) {
+			allConnections.remove(s);
 		}
 	}
 	

@@ -25,5 +25,14 @@ public String toString() {
     return dateFormat.format(date) + " " + toSend();
 }
 
+public String toChatHistory() {
+	DateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
+	String timewhen = dateFormat.format(when) + " ";
+	if(owner.length()>1)
+		return timewhen + owner + ": " + content + "#newmessage#";
+		else
+			return timewhen + content + "#newmessage#";
+}
+
 
 }

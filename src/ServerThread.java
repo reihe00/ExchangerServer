@@ -18,7 +18,8 @@ public void run(){
     	
     	System.out.println("accepting");
 		   BufferedReader inFromClient =
-		    new BufferedReader(new InputStreamReader(connectionSocket.getInputStream()));
+		    new BufferedReader(new InputStreamReader(connectionSocket.getInputStream(),"UTF8"));
+		   
 		   DataOutputStream outToClient = new DataOutputStream(connectionSocket.getOutputStream());
 		  
 		   clientSentence = inFromClient.readLine();
@@ -27,38 +28,42 @@ public void run(){
 		 me= MainServer.loginUser(username, clientSentence); 
 			if(me==null){
 			   clientSentence="#disconnect#";
-			   outToClient.writeBytes(clientSentence + "\n");
+			   outToClient.write(new String(clientSentence + "\n").getBytes("UTF8"));
 		   }else {
 			   
 		   }
 		   while(!clientSentence.equalsIgnoreCase("#disconnect#")) {
 		   System.out.println("Received: " + clientSentence);
+		   if(clientSentence.equalsIgnoreCase("#connections#")) {
+				  outToClient.write(new String(String.valueOf(MainServer.allConnections.size())+"\n").getBytes("UTF8"));
+			   }
+			   if(clientSentence.equalsIgnoreCase("#role#")) {
+					  outToClient.write(new String(me.role + "\n").getBytes("UTF8"));
+				   }
 		   if(me.role.equalsIgnoreCase("admin")) {
 			   //System.out.println("admin says " + clientSentence);
 			   if(clientSentence.startsWith("#")&&clientSentence.endsWith("#")) {
 				   String command = clientSentence.replaceAll("#","");
 				   
 				   if(ServerIO.executeCommand(command, me.role)) {
-					   outToClient.writeBytes(command + " executed!\n");
+					   outToClient.write(new String(command + " executed!\n").getBytes("UTF8"));
 				   }else {
-					   outToClient.writeBytes("Unknown command: " + command+"\n");
+					   outToClient.write(new String("Unknown command: " + command+"\n").getBytes("UTF8"));
 				   }
 			   }
 			   
 		   }
-		   if(clientSentence.equalsIgnoreCase("#connections#")) {
-			  outToClient.writeBytes(String.valueOf(MainServer.allConnections.size()));
-		   }
-		   if(clientSentence.equalsIgnoreCase("#role#")) {
-				  outToClient.writeBytes(me.role + "\n");
-			   }
+		   
 		   //capitalizedSentence = clientSentence.toUpperCase() + "\n";
 		   if(messagecount==0) {
+			   String chathistory = "";
 			   for(ChatMessage cm : MainServer.allMessagesSince(me.lastseen)) {
-			   outToClient.writeBytes(cm.toSend());
-			   sleep(60);
+				   chathistory+=cm.toChatHistory();
+			   
 			   }
-			   sleep(20);
+			   if(chathistory.length()>2)
+			   outToClient.write(new String(chathistory + "\n").getBytes("UTF8"));
+			   sleep(60);
 		   capitalizedSentence = "Hallo " + username + "!";
 		   MainServer.addMessage(new ChatMessage(capitalizedSentence,""));
 		   }else {
