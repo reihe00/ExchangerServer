@@ -13,14 +13,20 @@ public void run() {
 		
 		String s = in. nextLine();
 		if(s=="stop")in.close();
-		executeCommand(s,"local");
+		String exec = executeCommand(s,"local");
+		exec = exec.replaceAll("#newline#", "\n");
+		exec = exec.replaceAll("#newmessage#", "\n");
+		System.out.println(exec);
 	}
 }
 
-private static void allmessages() {
+private static String allmessages() {
+	String ret ="";
 	for(ChatMessage cm : MainServer.allMessages) {
-		System.out.println(cm.toString());
+		//System.out.println(cm.toString());
+		ret+=cm.toChatHistory();
 	}
+	return ret;
 }
 private static String getDate() {
 	DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
@@ -58,16 +64,16 @@ private static void saveRegisteredUsers() {
 	}
 }
 
-public static boolean executeCommand(String command,String role) {
+public static String executeCommand(String command,String role) {
 	switch(command) {
-	case "stop" : MainServer.killServer(); return true;
-	case "help" : System.out.println("not available"); return true;
-	case "connections" : System.out.println(MainServer.allConnections.size()); return true;
-	case "allmessages" : allmessages(); return true;
-	case "save" : saveRegisteredUsers(); return true;
-	case "savelog" : saveToLog(); return true;
-	case "disconnect" : if(role=="local")System.out.println("client only"); return true;
-	default : if(role=="local")System.out.println("unknown command"); return false;
+	case "stop" : MainServer.killServer(); return "Command executed";
+	case "help" : return "currently not available";
+	case "connections" : return String.valueOf(MainServer.allConnections.size());
+	case "allmessages" : return allmessages();
+	case "save" : saveRegisteredUsers(); return "saved";
+	case "savelog" : saveToLog(); return "saved";
+	case "disconnect" : if(role=="local")System.out.println("client only"); return "disconnected";
+	default : return "unknown command: " + command;
 	}
 }
 }

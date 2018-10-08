@@ -45,11 +45,9 @@ public void run(){
 			   if(clientSentence.startsWith("#")&&clientSentence.endsWith("#")) {
 				   String command = clientSentence.replaceAll("#","");
 				   
-				   if(ServerIO.executeCommand(command, me.role)) {
-					   outToClient.write(new String(command + " executed!\n").getBytes("UTF8"));
-				   }else {
-					   outToClient.write(new String("Unknown command: " + command+"\n").getBytes("UTF8"));
-				   }
+				   		String exec = ServerIO.executeCommand(command, role);
+					   outToClient.write(new String(exec+"\n").getBytes("UTF8"));
+				  
 			   }
 			   
 		   }

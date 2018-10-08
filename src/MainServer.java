@@ -75,11 +75,14 @@ public class MainServer {
 				brokenones.add(s);
 			}
 			
+		}else {
+			brokenones.add(s);
 		}
 		   
 		}
 		for(Socket s : brokenones) {
 			allConnections.remove(s);//jo
+			System.out.println(s.toString() + " removed");
 		}
 	}
 	
