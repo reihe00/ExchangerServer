@@ -1,4 +1,13 @@
 
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+
+import javax.crypto.Cipher;
+
+import java.util.Base64;
 
 import java.io.*;
 import java.net.*;
@@ -8,12 +17,29 @@ import java.util.Date;
 
 public class MainServer {
 	static ServerSocket welcomeSocket;
-	static ArrayList<Socket> allConnections = new ArrayList<Socket>();
+	static ArrayList<ServerThread> allConnections = new ArrayList<ServerThread>();
 	static ArrayList<ChatMessage> allMessages = new ArrayList<ChatMessage>();
 	static ArrayList<RegisteredUser> allRegisteredUsers = new ArrayList<RegisteredUser>();
+	static boolean useEncryption=false;
+	static KeyPair keyPair;
+	static PublicKey pubKey;
+	static PrivateKey privKey;
 	public static void main(String[] args) throws IOException {
 		// TODO Auto-generated method stub
-		
+		try {
+			if(args[0]=="true") {
+				useEncryption=true;
+				// generate public and private keys
+		        keyPair = buildKeyPair();
+		        pubKey = keyPair.getPublic();
+		        privKey = keyPair.getPrivate();
+			}else {
+				useEncryption=false;
+			}
+		}catch(Exception e) {
+			System.out.println("WARNING! Running in insecure mode!");
+			useEncryption=false;
+		}
 		try {
 		FileReader fw = new FileReader("exchangerusers.snt");
 		
@@ -42,7 +68,7 @@ public class MainServer {
 		  while (true) {
 			  Thread st = new ServerThread();
 			  ((ServerThread)st).connectionSocket=welcomeSocket.accept();
-			  allConnections.add(((ServerThread)st).connectionSocket);
+			  allConnections.add(((ServerThread)st));
 			  st.start();
 		  
 		  }
@@ -61,26 +87,35 @@ public class MainServer {
 	
 	public static void addMessage(ChatMessage message) {
 		allMessages.add(message);
-		ArrayList<Socket> brokenones = new ArrayList<Socket>();
-		for(Socket s : allConnections) {
+		ArrayList<ServerThread> brokenones = new ArrayList<ServerThread>();
+		for(ServerThread st : allConnections) {
+			Socket s = st.connectionSocket;
 		DataOutputStream outToClient;
 		if(s.isConnected()&&!s.isClosed()) {
 			try {
 				outToClient = new DataOutputStream(s.getOutputStream());
+				if(useEncryption&&(st.userpubkey!=null)) {
+			String asString = new String(encrypt(st.userpubkey,message.toSend()),"UTF8");
+					outToClient.write(asString.getBytes(("UTF8")));
+				}else {
 				outToClient.write(message.toSend().getBytes("UTF8"));
 				if(message.toSend().equalsIgnoreCase("#disconnect#"))s.close();
+				}
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
-				brokenones.add(s);
+				brokenones.add(st);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
 			
 		}else {
-			brokenones.add(s);
+			brokenones.add(st);
 		}
 		   
 		}
-		for(Socket s : brokenones) {
+		for(ServerThread s : brokenones) {
 			allConnections.remove(s);//jo
 			System.out.println(s.toString() + " removed");
 		}
@@ -113,5 +148,34 @@ public class MainServer {
 		}
 		return ret;
 	}
+	
+	 public static KeyPair buildKeyPair() throws NoSuchAlgorithmException {
+	        final int keySize = 2048;
+	        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+	        keyPairGenerator.initialize(keySize);      
+	        return keyPairGenerator.genKeyPair();
+	    }
+
+	    public static byte[] encrypt(PublicKey publicKey, String message) throws Exception {
+	        Cipher cipher = Cipher.getInstance("RSA");  
+	        cipher.init(Cipher.ENCRYPT_MODE, publicKey);  
+
+	        return cipher.doFinal(message.getBytes());  
+	    }
+	    
+	    public static byte[] decrypt(PrivateKey privateKey, byte [] encrypted) throws Exception {
+	        Cipher cipher = Cipher.getInstance("RSA");  
+	        cipher.init(Cipher.DECRYPT_MODE, privateKey);
+	        
+	        return cipher.doFinal(encrypted);
+	}
+	    
+	    public static String publicKeyToString(PublicKey p) {
+
+	        byte[] publicKeyBytes = p.getEncoded();
+	        
+	        return Base64.getEncoder().encodeToString(publicKeyBytes);
+
+	    }
 
 }

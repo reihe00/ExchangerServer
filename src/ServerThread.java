@@ -2,13 +2,22 @@ import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.InputStreamReader;
 import java.net.Socket;
+import java.security.KeyFactory;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.interfaces.RSAPublicKey;
+import java.security.spec.KeySpec;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
 import java.util.Date;
 
 public class ServerThread extends Thread {
 	public Socket connectionSocket;
 	public String username;
-	public String role;
+	public PublicKey userpubkey;
 	public RegisteredUser me;
+	
 @Override
 public void run(){
 	String clientSentence;
@@ -32,6 +41,21 @@ public void run(){
 		   }else {
 			   
 		   }
+			clientSentence=inFromClient.readLine();
+			if(clientSentence.startsWith("#pubkey#")) {
+				clientSentence.replaceAll("#pubkey#","");
+				clientSentence.replaceAll("\n","");
+				KeyFactory kf = KeyFactory.getInstance("RSA");
+				 //PKCS8EncodedKeySpec keySpecPKCS8 = new PKCS8EncodedKeySpec(Base64.getDecoder().decode(privateKeyContent));
+			       // PrivateKey privKey = kf.generatePrivate(keySpecPKCS8);
+
+			        X509EncodedKeySpec keySpecX509 = new X509EncodedKeySpec(Base64.getDecoder().decode(clientSentence));
+			userpubkey = kf.generatePublic(keySpecX509);
+			KeySpec x509Spec2 = new X509EncodedKeySpec(MainServer.pubKey.getEncoded());
+			String serverkeyasstring = "#pubkey#" + MainServer.publicKeyToString(MainServer.pubKey) + "\n";
+			outToClient.write(serverkeyasstring.getBytes("UTF8"));
+				clientSentence=" uses a secure connection!";
+			}
 		   while(!clientSentence.equalsIgnoreCase("#disconnect#")) {
 		   System.out.println("Received: " + clientSentence);
 		   if(clientSentence.equalsIgnoreCase("#connections#")) {
@@ -45,7 +69,7 @@ public void run(){
 			   if(clientSentence.startsWith("#")&&clientSentence.endsWith("#")) {
 				   String command = clientSentence.replaceAll("#","");
 				   
-				   		String exec = ServerIO.executeCommand(command, role);
+				   		String exec = ServerIO.executeCommand(command, me.role);
 					   outToClient.write(new String(exec+"\n").getBytes("UTF8"));
 				  
 			   }
@@ -74,7 +98,7 @@ public void run(){
 		   if(me!=null)
 		   me.lastseen=new Date();
 		   connectionSocket.close();
-		   MainServer.allConnections.remove(connectionSocket);
+		   MainServer.allConnections.remove(this);
 		   System.out.println("Disc");
 		   capitalizedSentence = username + " ist gegangen!";
 		   MainServer.addMessage(new ChatMessage(capitalizedSentence,""));
