@@ -43,21 +43,33 @@ public void run(){
 		   }
 			clientSentence=inFromClient.readLine();
 			if(clientSentence.startsWith("#pubkey#")) {
-				clientSentence.replaceAll("#pubkey#","");
-				clientSentence.replaceAll("\n","");
+				clientSentence=clientSentence.replaceAll("#pubkey#","");
+				clientSentence=clientSentence.replaceAll("\n","");
 				KeyFactory kf = KeyFactory.getInstance("RSA");
 				 //PKCS8EncodedKeySpec keySpecPKCS8 = new PKCS8EncodedKeySpec(Base64.getDecoder().decode(privateKeyContent));
 			       // PrivateKey privKey = kf.generatePrivate(keySpecPKCS8);
-
+					System.out.println(clientSentence);
 			        X509EncodedKeySpec keySpecX509 = new X509EncodedKeySpec(Base64.getDecoder().decode(clientSentence));
 			userpubkey = kf.generatePublic(keySpecX509);
-			KeySpec x509Spec2 = new X509EncodedKeySpec(MainServer.pubKey.getEncoded());
+			//KeySpec x509Spec2 = new X509EncodedKeySpec(MainServer.pubKey.getEncoded());
 			String serverkeyasstring = "#pubkey#" + MainServer.publicKeyToString(MainServer.pubKey) + "\n";
+			System.out.println(serverkeyasstring);
 			outToClient.write(serverkeyasstring.getBytes("UTF8"));
 				clientSentence=" uses a secure connection!";
 			}
 		   while(!clientSentence.equalsIgnoreCase("#disconnect#")) {
 		   System.out.println("Received: " + clientSentence);
+		   if(userpubkey!=null)System.out.println("pubkey gesetzt");
+		   if(MainServer.useEncryption)System.out.println("server uses encryption");
+		   if(clientSentence.startsWith("#encoded#"))System.out.println("encoded message");
+		   if(userpubkey!=null&&MainServer.useEncryption&&clientSentence.startsWith("#encoded#")) {			//decrypt here
+			   clientSentence=clientSentence.replaceAll("#encoded#", "");
+			   clientSentence=clientSentence.replaceAll("\n", "");
+			   clientSentence=clientSentence.replaceAll("#n#", "\n");
+			   System.out.println("trying to decode");
+		   clientSentence = new String(MainServer.decrypt(MainServer.privKey, clientSentence.getBytes()));
+		   System.out.println(clientSentence);
+		   }
 		   if(clientSentence.equalsIgnoreCase("#connections#")) {
 				  outToClient.write(new String(String.valueOf(MainServer.allConnections.size())+"\n").getBytes("UTF8"));
 			   }
@@ -76,7 +88,7 @@ public void run(){
 			   
 		   }
 		   
-		   //capitalizedSentence = clientSentence.toUpperCase() + "\n";
+		   //first message!
 		   if(messagecount==0) {
 			   String chathistory = "";
 			   for(ChatMessage cm : MainServer.allMessagesSince(me.lastseen)) {
