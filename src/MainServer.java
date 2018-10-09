@@ -27,14 +27,16 @@ public class MainServer {
 	public static void main(String[] args) throws IOException {
 		// TODO Auto-generated method stub
 		try {
-			if(args[0]=="true") {
+			keyPair = buildKeyPair();
+	        pubKey = keyPair.getPublic();
+	        privKey = keyPair.getPrivate();
+			if(args[0].equalsIgnoreCase("true")) {
 				useEncryption=true;
 				// generate public and private keys
-		        keyPair = buildKeyPair();
-		        pubKey = keyPair.getPublic();
-		        privKey = keyPair.getPrivate();
+		        
 			}else {
 				useEncryption=false;
+				System.out.println(args[0]);
 			}
 		}catch(Exception e) {
 			System.out.println("WARNING! Running in insecure mode!");
@@ -95,8 +97,10 @@ public class MainServer {
 			try {
 				outToClient = new DataOutputStream(s.getOutputStream());
 				if(useEncryption&&(st.userpubkey!=null)) {
-			String asString = new String(encrypt(st.userpubkey,message.toSend()),"UTF8");
-					outToClient.write(asString.getBytes(("UTF8")));
+					String enc ="#encoded#"+new String(encrypt(st.userpubkey,message.toSend()),"UTF8");
+					enc=enc.replaceAll("\n", "#n#");
+			enc+="\n";
+					outToClient.write(enc.getBytes(("UTF8")));
 				}else {
 				outToClient.write(message.toSend().getBytes("UTF8"));
 				if(message.toSend().equalsIgnoreCase("#disconnect#"))s.close();
