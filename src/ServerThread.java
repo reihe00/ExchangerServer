@@ -45,7 +45,9 @@ public void run(){
 			if(clientSentence.startsWith("#pubkey#")) {
 				clientSentence=clientSentence.replaceAll("#pubkey#","");
 				clientSentence=clientSentence.replaceAll("\n","");
+
 				clientSentence=clientSentence.replaceAll("#n#","\n");
+
 				KeyFactory kf = KeyFactory.getInstance("RSA");
 				 //PKCS8EncodedKeySpec keySpecPKCS8 = new PKCS8EncodedKeySpec(Base64.getDecoder().decode(privateKeyContent));
 			       // PrivateKey privKey = kf.generatePrivate(keySpecPKCS8);
@@ -53,8 +55,10 @@ public void run(){
 			        X509EncodedKeySpec keySpecX509 = new X509EncodedKeySpec(Base64.getDecoder().decode(clientSentence));
 			userpubkey = kf.generatePublic(keySpecX509);
 			//KeySpec x509Spec2 = new X509EncodedKeySpec(MainServer.pubKey.getEncoded());
+
 			String serverkeyasstring = "#pubkey#" + MainServer.publicKeyToString(MainServer.pubKey);
 			serverkeyasstring = serverkeyasstring.replaceAll("\n","#n+") + "\n";
+
 			System.out.println(serverkeyasstring);
 			outToClient.write(serverkeyasstring.getBytes("UTF8"));
 				clientSentence=" uses a secure connection!";
