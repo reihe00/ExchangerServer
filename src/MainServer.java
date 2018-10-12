@@ -1,11 +1,17 @@
 
+import java.security.InvalidKeyException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 
+import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
+
 
 import java.util.Base64;
 
@@ -39,6 +45,7 @@ public class MainServer {
 				System.out.println(args[0]);
 			}
 		}catch(Exception e) {
+			e.printStackTrace();
 			System.out.println("WARNING! Running in insecure mode!");
 			useEncryption=false;
 		}
@@ -87,6 +94,8 @@ public class MainServer {
 		System.exit(0);
 	}
 	
+	
+	
 	public static void addMessage(ChatMessage message) {
 		allMessages.add(message);
 		ArrayList<ServerThread> brokenones = new ArrayList<ServerThread>();
@@ -97,12 +106,13 @@ public class MainServer {
 			try {
 				outToClient = new DataOutputStream(s.getOutputStream());
 				if(useEncryption&&(st.userpubkey!=null)) {
-					String enc ="#encoded#"+new String(encrypt(st.userpubkey,message.toSend()),"UTF8");
+					String enc ="#encoded#"+Base64.getEncoder().encodeToString(encryptAES(st.secKey,message.toSend()));
 					enc=enc.replaceAll("\n", "#n#");
 			enc+="\n";
 					outToClient.write(enc.getBytes(("UTF8")));
 				}else {
-				outToClient.write(message.toSend().getBytes("UTF8"));
+					String unencoded = message.toSend() + "\n";
+				outToClient.write(unencoded.getBytes("UTF8"));
 				if(message.toSend().equalsIgnoreCase("#disconnect#"))s.close();
 				}
 			} catch (IOException e) {
@@ -178,8 +188,26 @@ public class MainServer {
 
 	        byte[] publicKeyBytes = p.getEncoded();
 	        
+	        
 	        return Base64.getEncoder().encodeToString(publicKeyBytes);
 
 	    }
+	    
+	  public static byte[] encryptAES(SecretKey aeskey, String message) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, UnsupportedEncodingException {
+		  
+				  Cipher aesCipher = Cipher.getInstance("AES");
+				  aesCipher.init(Cipher.ENCRYPT_MODE, aeskey);
+				  byte[] byteCipherText = aesCipher.doFinal(message.getBytes("UTF8"));
+				  return byteCipherText;
+	  }
+	  
+	  public static String decryptAES(SecretKey secKey, byte[] code) throws IllegalBlockSizeException, BadPaddingException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException {
+		  
+		  Cipher aesCipher = Cipher.getInstance("AES");
+		  aesCipher.init(Cipher.DECRYPT_MODE, secKey);
+		  byte[] bytePlainText = aesCipher.doFinal(code);
+		  String plainText = new String(bytePlainText);
+		  return plainText;
+	  }
 
 }

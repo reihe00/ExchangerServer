@@ -13,10 +13,12 @@ public ChatMessage(String what,String from) {
 }
 
 public String toSend() {
+	
 	if(owner.length()>1)
-	return owner + ": " + content + "\n";
+	return owner + ": " + content;
 	else
-		return content + "\n";
+		return content;
+	
 }
 
 public String toString() {

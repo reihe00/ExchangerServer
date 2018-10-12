@@ -2,27 +2,48 @@ import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.InputStreamReader;
 import java.net.Socket;
+import java.security.InvalidKeyException;
 import java.security.KeyFactory;
-import java.security.PrivateKey;
+import java.security.NoSuchAlgorithmException;
+
 import java.security.PublicKey;
-import java.security.interfaces.RSAPublicKey;
-import java.security.spec.KeySpec;
-import java.security.spec.PKCS8EncodedKeySpec;
+
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.util.Date;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.KeyGenerator;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
+import javax.xml.bind.DatatypeConverter;
 
 public class ServerThread extends Thread {
 	public Socket connectionSocket;
 	public String username;
 	public PublicKey userpubkey;
 	public RegisteredUser me;
+	KeyGenerator generator;
+	
+	public SecretKey secKey;
 	
 @Override
 public void run(){
 	String clientSentence;
 	  String capitalizedSentence;
 	  int messagecount=0;
+	  try {
+		generator = KeyGenerator.getInstance("AES");
+		generator.init(128); // The AES key size in number of bits
+		  secKey = generator.generateKey();
+	} catch (NoSuchAlgorithmException e1) {
+		// TODO Auto-generated catch block
+		e1.printStackTrace();
+	}
+	  
+	  
     try {
     	
     	System.out.println("accepting");
@@ -39,7 +60,8 @@ public void run(){
 			   clientSentence="#disconnect#";
 			   outToClient.write(new String(clientSentence + "\n").getBytes("UTF8"));
 		   }else {
-			   
+			   if(me.lastseen!=null)
+			   System.out.println(me.lastseen);
 		   }
 			clientSentence=inFromClient.readLine();
 			if(clientSentence.startsWith("#pubkey#")) {
@@ -51,31 +73,31 @@ public void run(){
 				KeyFactory kf = KeyFactory.getInstance("RSA");
 				 //PKCS8EncodedKeySpec keySpecPKCS8 = new PKCS8EncodedKeySpec(Base64.getDecoder().decode(privateKeyContent));
 			       // PrivateKey privKey = kf.generatePrivate(keySpecPKCS8);
-					System.out.println(clientSentence);
+					
 			        X509EncodedKeySpec keySpecX509 = new X509EncodedKeySpec(Base64.getDecoder().decode(clientSentence));
 			userpubkey = kf.generatePublic(keySpecX509);
 			//KeySpec x509Spec2 = new X509EncodedKeySpec(MainServer.pubKey.getEncoded());
-
+			
 			String serverkeyasstring = "#pubkey#" + MainServer.publicKeyToString(MainServer.pubKey);
-			serverkeyasstring = serverkeyasstring.replaceAll("\n","#n+") + "\n";
+			serverkeyasstring = serverkeyasstring.replaceAll("\n","#n#") + "\n";
 
-			System.out.println(serverkeyasstring);
+			
+            
 			outToClient.write(serverkeyasstring.getBytes("UTF8"));
+			
+			
+			serverkeyasstring = "#aeskey#" + toHexString(encryptedAESKey(userpubkey));
+			
+			serverkeyasstring = serverkeyasstring.replaceAll("\n","#n#") + "\n";
+			outToClient.write(serverkeyasstring.getBytes("UTF8"));
+			
+			
 				clientSentence=" uses a secure connection!";
 			}
 		   while(!clientSentence.equalsIgnoreCase("#disconnect#")) {
-		   System.out.println("Received: " + clientSentence);
-		   if(userpubkey!=null)System.out.println("pubkey gesetzt");
-		   if(MainServer.useEncryption)System.out.println("server uses encryption");
-		   if(clientSentence.startsWith("#encoded#"))System.out.println("encoded message");
-		   if(userpubkey!=null&&MainServer.useEncryption&&clientSentence.startsWith("#encoded#")) {			//decrypt here
-			   clientSentence=clientSentence.replaceAll("#encoded#", "");
-			   clientSentence=clientSentence.replaceAll("\n", "");
-			   clientSentence=clientSentence.replaceAll("#n#", "\n");
-			   System.out.println("trying to decode");
-		   clientSentence = new String(MainServer.decrypt(MainServer.privKey, clientSentence.getBytes()));
-		   System.out.println(clientSentence);
-		   }
+		  
+		   
+		   
 		   if(clientSentence.equalsIgnoreCase("#connections#")) {
 				  outToClient.write(new String(String.valueOf(MainServer.allConnections.size())+"\n").getBytes("UTF8"));
 			   }
@@ -88,22 +110,40 @@ public void run(){
 				   String command = clientSentence.replaceAll("#","");
 				   
 				   		String exec = ServerIO.executeCommand(command, me.role);
+				   		
+				   	 if(MainServer.useEncryption&&(userpubkey!=null)) {
+							String enc ="#encoded#"+Base64.getEncoder().encodeToString(MainServer.encryptAES(secKey,exec));
+							enc=enc.replaceAll("\n", "#n#");
+					enc+="\n";
+							outToClient.write(enc.getBytes(("UTF8")));
+						}else {
 					   outToClient.write(new String(exec+"\n").getBytes("UTF8"));
-				  
+						}
+				   	 sleep(250);
 			   }
 			   
 		   }
 		   
 		   //first message!
 		   if(messagecount==0) {
+			   sleep(250);
+			   System.out.println("sending chat-history for " + username);
 			   String chathistory = "";
 			   for(ChatMessage cm : MainServer.allMessagesSince(me.lastseen)) {
 				   chathistory+=cm.toChatHistory();
 			   
 			   }
+			   System.out.println(chathistory);
 			   if(chathistory.length()>2)
-			   outToClient.write(new String(chathistory + "\n").getBytes("UTF8"));
-			   sleep(60);
+				   if(MainServer.useEncryption&&(userpubkey!=null)) {
+						String enc ="#encoded#"+Base64.getEncoder().encodeToString(MainServer.encryptAES(secKey,chathistory));
+						enc=enc.replaceAll("\n", "#n#");
+				enc+="\n";
+						outToClient.write(enc.getBytes(("UTF8")));
+					}else {
+					outToClient.write(chathistory.getBytes("UTF8"));
+					}
+			   sleep(250);
 		   capitalizedSentence = "Hallo " + username + "!";
 		   MainServer.addMessage(new ChatMessage(capitalizedSentence,""));
 		   }else {
@@ -111,6 +151,16 @@ public void run(){
 			   MainServer.addMessage(new ChatMessage(capitalizedSentence,username));
 		   }
 		   clientSentence = inFromClient.readLine();
+		   
+		   if(userpubkey!=null&&MainServer.useEncryption&&clientSentence.startsWith("#encoded#")) {			//decrypt here
+			   clientSentence=clientSentence.replaceAll("#encoded#", "");
+			   clientSentence=clientSentence.replaceAll("\n", "");
+			   clientSentence=clientSentence.replaceAll("#n#", "\n");
+			   System.out.println("trying to decode: " + clientSentence);
+			   if(clientSentence.length()>1)
+		   clientSentence = new String(MainServer.decryptAES(secKey, Base64.getDecoder().decode(clientSentence)));
+		  
+		   }
 		   messagecount++;
 		   }
 		   if(me!=null)
@@ -126,5 +176,23 @@ public void run(){
        
     }
     
+}
+
+public byte[] encryptedAESKey(PublicKey userKey) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
+	Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+	cipher.init(Cipher.PUBLIC_KEY, userKey);
+	byte[] encryptedKey = cipher.doFinal(secKey.getEncoded()/*Seceret Key From Step 1*/);
+	
+	//System.out.println(hexStringToByteArray(new String(encryptedKey)).length);
+	
+	return encryptedKey;
+}
+
+public static String toHexString(byte[] array) {
+    return DatatypeConverter.printHexBinary(array);
+}
+
+public static byte[] toByteArray(String s) {
+    return DatatypeConverter.parseHexBinary(s);
 }
 }
