@@ -51,19 +51,9 @@ public void run(){
 		    new BufferedReader(new InputStreamReader(connectionSocket.getInputStream(),"UTF8"));
 		   
 		   DataOutputStream outToClient = new DataOutputStream(connectionSocket.getOutputStream());
-		  
-		   clientSentence = inFromClient.readLine();
-		   username=clientSentence;
-		   clientSentence = inFromClient.readLine();
-		 me= MainServer.loginUser(username, clientSentence); 
-			if(me==null){
-			   clientSentence="#disconnect#";
-			   outToClient.write(new String(clientSentence + "\n").getBytes("UTF8"));
-		   }else {
-			   if(me.lastseen!=null)
-			   System.out.println(me.lastseen);
-		   }
-			clientSentence=inFromClient.readLine();
+		   
+		   //keyexchange
+		   clientSentence=inFromClient.readLine();
 			if(clientSentence.startsWith("#pubkey#")) {
 				clientSentence=clientSentence.replaceAll("#pubkey#","");
 				clientSentence=clientSentence.replaceAll("\n","");
@@ -71,18 +61,15 @@ public void run(){
 				clientSentence=clientSentence.replaceAll("#n#","\n");
 
 				KeyFactory kf = KeyFactory.getInstance("RSA");
-				 //PKCS8EncodedKeySpec keySpecPKCS8 = new PKCS8EncodedKeySpec(Base64.getDecoder().decode(privateKeyContent));
-			       // PrivateKey privKey = kf.generatePrivate(keySpecPKCS8);
-					
+				 
 			        X509EncodedKeySpec keySpecX509 = new X509EncodedKeySpec(Base64.getDecoder().decode(clientSentence));
 			userpubkey = kf.generatePublic(keySpecX509);
-			//KeySpec x509Spec2 = new X509EncodedKeySpec(MainServer.pubKey.getEncoded());
 			
 			String serverkeyasstring = "#pubkey#" + MainServer.publicKeyToString(MainServer.pubKey);
 			serverkeyasstring = serverkeyasstring.replaceAll("\n","#n#") + "\n";
 
 			
-            
+           
 			outToClient.write(serverkeyasstring.getBytes("UTF8"));
 			
 			
@@ -91,9 +78,37 @@ public void run(){
 			serverkeyasstring = serverkeyasstring.replaceAll("\n","#n#") + "\n";
 			outToClient.write(serverkeyasstring.getBytes("UTF8"));
 			
+			//login secure
+			clientSentence = inFromClient.readLine();
+			clientSentence=decode(clientSentence);
+			username=clientSentence;
+			clientSentence = inFromClient.readLine();
+			clientSentence = decode(clientSentence);
+			me= MainServer.loginUser(username, clientSentence); 
+			if(me==null){
+				clientSentence="#disconnect#";
+				outToClient.write(new String(clientSentence + "\n").getBytes("UTF8"));
+			}else {
+				if(me.lastseen!=null)
+					System.out.println(me.lastseen);
+			}
 			
 				clientSentence=" uses a secure connection!";
 			}
+			else {
+				//login insecure
+				username=clientSentence;
+				clientSentence = inFromClient.readLine();
+				me= MainServer.loginUser(username, clientSentence); 
+				if(me==null){
+					clientSentence="#disconnect#";
+					outToClient.write(new String(clientSentence + "\n").getBytes("UTF8"));
+				}else {
+					if(me.lastseen!=null)
+						System.out.println(me.lastseen);
+				}
+			}
+			
 		   while(!clientSentence.equalsIgnoreCase("#disconnect#")) {
 		  
 		   
@@ -152,15 +167,7 @@ public void run(){
 		   }
 		   clientSentence = inFromClient.readLine();
 		   
-		   if(userpubkey!=null&&MainServer.useEncryption&&clientSentence.startsWith("#encoded#")) {			//decrypt here
-			   clientSentence=clientSentence.replaceAll("#encoded#", "");
-			   clientSentence=clientSentence.replaceAll("\n", "");
-			   clientSentence=clientSentence.replaceAll("#n#", "\n");
-			   System.out.println("trying to decode: " + clientSentence);
-			   if(clientSentence.length()>1)
-		   clientSentence = new String(MainServer.decryptAES(secKey, Base64.getDecoder().decode(clientSentence)));
-		  
-		   }
+		   clientSentence = decode(clientSentence);
 		   messagecount++;
 		   }
 		   if(me!=null)
@@ -194,5 +201,23 @@ public static String toHexString(byte[] array) {
 
 public static byte[] toByteArray(String s) {
     return DatatypeConverter.parseHexBinary(s);
+}
+
+private String decode(String clientSentence) {
+if(userpubkey!=null&&MainServer.useEncryption&&clientSentence.startsWith("#encoded#")) {			//decrypt here
+	   clientSentence=clientSentence.replaceAll("#encoded#", "");
+	   clientSentence=clientSentence.replaceAll("\n", "");
+	   clientSentence=clientSentence.replaceAll("#n#", "\n");
+	   System.out.println("trying to decode: " + clientSentence);
+	   if(clientSentence.length()>1)
+		try {
+			clientSentence = new String(MainServer.decryptAES(secKey, Base64.getDecoder().decode(clientSentence)));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	   return clientSentence;
+}
+return clientSentence;
+
 }
 }
