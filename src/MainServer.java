@@ -36,18 +36,19 @@ public class MainServer {
 			keyPair = buildKeyPair();
 	        pubKey = keyPair.getPublic();
 	        privKey = keyPair.getPrivate();
-			if(args[0].equalsIgnoreCase("true")) {
-				useEncryption=true;
-				// generate public and private keys
+			if(args[0].equalsIgnoreCase("false")) {
+				useEncryption=false;
+				
+				System.out.println("WARNING! Running in insecure mode!");
 		        
 			}else {
-				useEncryption=false;
+				useEncryption=true;
 				System.out.println(args[0]);
 			}
 		}catch(Exception e) {
-			e.printStackTrace();
-			System.out.println("WARNING! Running in insecure mode!");
-			useEncryption=false;
+			//e.printStackTrace();
+			
+			useEncryption=true;
 		}
 		try {
 		FileReader fw = new FileReader("exchangerusers.snt");
