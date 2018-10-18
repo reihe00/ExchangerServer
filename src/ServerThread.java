@@ -118,9 +118,22 @@ public void run(){
 				}
 			}
 			
-		   while(!clientSentence.equalsIgnoreCase("#disconnect#")) {
+		   while(!clientSentence.contains("#disconnect#")) {
 		  
-		   
+			   //direct messages
+			   if(clientSentence.startsWith("#to#")) {
+				   String[] sub = clientSentence.split("#to#");
+				   ChatMessage cm = new ChatMessage(sub[1],me.username,sub[0]);
+				   RegisteredUser rec=null;
+				   for(RegisteredUser st : MainServer.allRegisteredUsers) {
+						if(st.username.equalsIgnoreCase(sub[0])) {
+							rec=st;
+							}
+						}
+				   System.out.println("sending " + cm.content + " to " + rec.username);
+				   MainServer.addMessageTo(cm, true, rec);
+			   }else {
+				   //normal messages
 		   
 		   if(clientSentence.equalsIgnoreCase("#connections#")) {
 				  outToClient.write(new String(String.valueOf(MainServer.allConnections.size())+"\n").getBytes("UTF8"));
@@ -154,7 +167,10 @@ public void run(){
 			   System.out.println("sending chat-history for " + username);
 			   String chathistory = "";
 			   for(ChatMessage cm : MainServer.allMessagesSince(me.lastseen)) {
+				   if(cm.target.equalsIgnoreCase(me.username)||cm.target=="")
 				   chathistory+=cm.toChatHistory();
+				   else
+					   System.out.println("wrong target: " + cm.target);
 			   
 			   }
 			   System.out.println(chathistory);
@@ -170,14 +186,18 @@ public void run(){
 			   sleep(250);
 		   capitalizedSentence = "Hallo " + username + "!";
 		   MainServer.addMessage(new ChatMessage(capitalizedSentence,""));
+		   sleep(250);
+		   MainServer.sendAllUsers();
 		   }else {
 			   capitalizedSentence = clientSentence;
 			   MainServer.addMessage(new ChatMessage(capitalizedSentence,username));
 		   }
+			   }
 		   clientSentence = inFromClient.readLine();
 		   
 		   clientSentence = decode(clientSentence);
 		   messagecount++;
+			   
 		   }
 		   if(me!=null)
 		   me.lastseen=new Date();

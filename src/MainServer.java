@@ -95,39 +95,39 @@ public class MainServer {
 		System.exit(0);
 	}
 	
-	
-	
 	public static void addMessage(ChatMessage message) {
+		addMessage(message,true);
+	}
+	
+	public static void addMessageTo(ChatMessage message, boolean toHistory, RegisteredUser user) {
+		if(toHistory)
+			allMessages.add(message);
+		ArrayList<ServerThread> brokenones = new ArrayList<ServerThread>();
+		for(ServerThread st : allConnections) {
+			if(st.username.equalsIgnoreCase(user.username)) {
+				if(!send(st,message)) {
+					brokenones.add(st);
+				}
+				
+				   
+				}
+				
+			}
+		for(ServerThread s : brokenones) {
+			allConnections.remove(s);//jo
+			System.out.println(s.toString() + " removed");
+		}
+		
+	}
+	
+	public static void addMessage(ChatMessage message,boolean toHistory) {
+		if(toHistory)
 		allMessages.add(message);
 		ArrayList<ServerThread> brokenones = new ArrayList<ServerThread>();
 		for(ServerThread st : allConnections) {
-			Socket s = st.connectionSocket;
-		DataOutputStream outToClient;
-		if(s.isConnected()&&!s.isClosed()) {
-			try {
-				outToClient = new DataOutputStream(s.getOutputStream());
-				if(useEncryption&&(st.userpubkey!=null)) {
-					String enc ="#encoded#"+Base64.getEncoder().encodeToString(encryptAES(st.secKey,message.toSend()));
-					enc=enc.replaceAll("\n", "#n#");
-			enc+="\n";
-					outToClient.write(enc.getBytes(("UTF8")));
-				}else {
-					String unencoded = message.toSend() + "\n";
-				outToClient.write(unencoded.getBytes("UTF8"));
-				if(message.toSend().equalsIgnoreCase("#disconnect#"))s.close();
-				}
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			if(!send(st,message)) {
 				brokenones.add(st);
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
 			}
-			
-		}else {
-			brokenones.add(st);
-		}
 		   
 		}
 		for(ServerThread s : brokenones) {
@@ -209,6 +209,46 @@ public class MainServer {
 		  byte[] bytePlainText = aesCipher.doFinal(code);
 		  String plainText = new String(bytePlainText);
 		  return plainText;
+	  }
+	  
+	  public static void sendAllUsers() {
+		  String au = "";
+		  for(RegisteredUser ru : allRegisteredUsers) {
+			  au+="#user#"+ru.username;
+		  }
+		  addMessage(new ChatMessage(au,""),false);
+	  }
+	  
+	  private static boolean send(ServerThread st,ChatMessage message) {
+		  boolean ret = true;
+		  Socket s = st.connectionSocket;
+		  DataOutputStream outToClient;
+			if(s.isConnected()&&!s.isClosed()) {
+				try {
+					outToClient = new DataOutputStream(s.getOutputStream());
+					if(useEncryption&&st.userpubkey!=null) {
+						String enc ="#encoded#"+Base64.getEncoder().encodeToString(encryptAES(st.secKey,message.toSend()));
+						enc=enc.replaceAll("\n", "#n#");
+				enc+="\n";
+						outToClient.write(enc.getBytes(("UTF8")));
+					}else {
+						String unencoded = message.toSend() + "\n";
+					outToClient.write(unencoded.getBytes("UTF8"));
+					if(message.toSend().equalsIgnoreCase("#disconnect#"))s.close();
+					}
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					ret=false;
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
+			}else {
+				ret=false;
+			}
+			return ret;
 	  }
 
 }
