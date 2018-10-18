@@ -81,10 +81,19 @@ public void run(){
 			//login secure
 			clientSentence = inFromClient.readLine();
 			clientSentence=decode(clientSentence);
-			username=clientSentence;
+			//System.out.println(clientSentence);
+			String[] uandp=clientSentence.split("#pass#");
+			//System.out.println(uandp.length);
+			username=uandp[0];
+			//System.out.println(clientSentence);
+			/*while(clientSentence.equalsIgnoreCase(username)) {
+				System.out.println("trying to get pass");
+			sleep(50);
 			clientSentence = inFromClient.readLine();
 			clientSentence = decode(clientSentence);
-			me= MainServer.loginUser(username, clientSentence); 
+			}
+			System.out.println(clientSentence);*/
+			me= MainServer.loginUser(username, uandp[1]); 
 			if(me==null){
 				clientSentence="#disconnect#";
 				outToClient.write(new String(clientSentence + "\n").getBytes("UTF8"));
